@@ -30,6 +30,8 @@ Color Scheme: Professional blue theme (#4F7CFF primary, #6366F1 secondary) with 
 - **Primary Storage**: In-memory pandas dataframes stored in Streamlit session state
 - **File Support**: CSV, Excel (.xlsx, .xls), and JSON file formats
 - **Memory Optimization**: Automatic dataframe type optimization and chunking for large datasets
+- **Data Safety**: Arrow serialization error handling for complex object columns
+- **Display Optimization**: Safe dataframe display with complex object conversion to string representation
 - **Validation**: Comprehensive data validation including missing value checks, duplicate detection, and memory usage monitoring
 
 ### Authentication and Authorization
@@ -38,10 +40,12 @@ Color Scheme: Professional blue theme (#4F7CFF primary, #6366F1 secondary) with 
 - **Access Control**: No user authentication system - public access application
 
 ### Visualization Engine
-- **Library**: Plotly for interactive visualizations
-- **Chart Types**: Supports histograms, bar charts, scatter plots, line charts, pie charts, box plots, and correlation heatmaps
+- **Library**: Plotly for interactive visualizations with Kaleido for image export
+- **Chart Types**: Comprehensive selection including bar charts, line charts, scatter plots, pie charts, histograms, box plots, and correlation heatmaps
+- **Interactive Interface**: Dedicated visualization center in sidebar with step-by-step chart creation
 - **Auto-Detection**: Intelligent visualization type selection based on query keywords and data characteristics
-- **Customization**: Predefined color palettes and responsive design for various screen sizes
+- **Professional Features**: Enterprise-grade styling, downloadable PNG exports, column selection, and color coding options
+- **Customization**: Predefined blue color palette matching enterprise theme with responsive design
 
 ## External Dependencies
 

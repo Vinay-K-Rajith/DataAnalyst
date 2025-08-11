@@ -2,12 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.io as pio
 import numpy as np
 import json
 import io
 from data_analyzer import DataAnalyzer
 from visualization_generator import VisualizationGenerator
-from utils import validate_dataframe, chunk_dataframe, optimize_dataframe_types
+from utils import validate_dataframe, chunk_dataframe, optimize_dataframe_types, safe_dataframe_display
 
 # Configure page
 st.set_page_config(
@@ -482,7 +483,12 @@ def main():
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                        st.dataframe(df.head(10), use_container_width=True, hide_index=True)
+                        safe_preview_df = safe_dataframe_display(df.head(10))
+                        st.dataframe(safe_preview_df, use_container_width=True, hide_index=True)
+                        
+                        # Add visualization center to sidebar
+                        st.markdown("---")
+                        visualization_center()
                     else:
                         st.error(f"❌ Dataset validation failed: {validation_result['error']}")
                         
@@ -700,7 +706,8 @@ def analytics_dashboard():
         if st.button("Generate Statistics", key="stats_btn", help="Generate comprehensive statistical analysis"):
             with st.spinner("Generating statistics..."):
                 stats = df.describe(include='all')
-                st.dataframe(stats, use_container_width=True, hide_index=False)
+                safe_df = safe_dataframe_display(stats)
+                st.dataframe(safe_df, use_container_width=True, hide_index=False)
     
     with col2:
         st.markdown("""
@@ -925,7 +932,8 @@ def data_explorer():
         """, unsafe_allow_html=True)
         
         display_df = filtered_df.iloc[row_range[0]:row_range[1]]
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        safe_df = safe_dataframe_display(display_df)
+        st.dataframe(safe_df, use_container_width=True, hide_index=True)
         
         # Professional download button
         csv = display_df.to_csv(index=False)
@@ -936,6 +944,178 @@ def data_explorer():
             mime="text/csv",
             help="Download the current filtered view as CSV"
         )
+
+def visualization_center():
+    """Advanced visualization center with comprehensive chart options"""
+    st.markdown("""
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h4 class="card-title">📊 Visualization Center</h4>
+            <div style="color: #64748B; font-size: 0.9rem;">Create professional charts and graphs</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    df = st.session_state.current_dataframe
+    
+    # Chart type selection
+    chart_types = {
+        "📊 Bar Chart": "bar",
+        "📈 Line Chart": "line", 
+        "🔵 Scatter Plot": "scatter",
+        "🥧 Pie Chart": "pie",
+        "📊 Histogram": "histogram",
+        "📦 Box Plot": "box",
+        "🔥 Heatmap": "heatmap",
+        "🎯 Auto-Generate": "auto"
+    }
+    
+    selected_chart = st.selectbox(
+        "Select Chart Type",
+        options=list(chart_types.keys()),
+        help="Choose the type of visualization to create"
+    )
+    
+    chart_type = chart_types[selected_chart]
+    
+    # Column selection based on chart type
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    all_cols = df.columns.tolist()
+    
+    if chart_type in ["bar", "scatter", "line", "box"]:
+        col1, col2 = st.columns(2)
+        with col1:
+            if chart_type == "bar":
+                x_col = st.selectbox("X-axis (Categories)", categorical_cols if categorical_cols else all_cols)
+                y_col = st.selectbox("Y-axis (Values)", numeric_cols if numeric_cols else all_cols)
+            elif chart_type in ["scatter", "line"]:
+                x_col = st.selectbox("X-axis", numeric_cols if numeric_cols else all_cols)
+                y_col = st.selectbox("Y-axis", numeric_cols if numeric_cols else all_cols)
+            elif chart_type == "box":
+                x_col = st.selectbox("Group by (optional)", ["None"] + categorical_cols)
+                y_col = st.selectbox("Values", numeric_cols if numeric_cols else all_cols)
+                x_col = None if x_col == "None" else x_col
+        
+        with col2:
+            color_col = st.selectbox("Color by (optional)", ["None"] + categorical_cols)
+            color_col = None if color_col == "None" else color_col
+            
+            size_col = None
+            if chart_type == "scatter" and numeric_cols:
+                size_col = st.selectbox("Size by (optional)", ["None"] + numeric_cols)
+                size_col = None if size_col == "None" else size_col
+    
+    elif chart_type in ["pie", "histogram"]:
+        if chart_type == "pie":
+            target_col = st.selectbox("Column to analyze", categorical_cols if categorical_cols else all_cols)
+        else:  # histogram
+            target_col = st.selectbox("Column to analyze", numeric_cols if numeric_cols else all_cols)
+    
+    # Generate visualization button
+    if st.button("🎨 Generate Visualization", key="viz_btn", help="Create the selected visualization"):
+        with st.spinner("Creating visualization..."):
+            try:
+                fig = None
+                
+                if chart_type == "bar":
+                    if x_col and y_col:
+                        fig = px.bar(
+                            df, x=x_col, y=y_col, color=color_col,
+                            title=f"{y_col} by {x_col}",
+                            color_discrete_sequence=st.session_state.viz_generator.color_palette
+                        )
+                
+                elif chart_type == "line":
+                    if x_col and y_col:
+                        fig = px.line(
+                            df, x=x_col, y=y_col, color=color_col,
+                            title=f"{y_col} vs {x_col}",
+                            color_discrete_sequence=st.session_state.viz_generator.color_palette
+                        )
+                
+                elif chart_type == "scatter":
+                    if x_col and y_col:
+                        fig = px.scatter(
+                            df, x=x_col, y=y_col, color=color_col, size=size_col,
+                            title=f"{y_col} vs {x_col}",
+                            color_discrete_sequence=st.session_state.viz_generator.color_palette
+                        )
+                
+                elif chart_type == "pie":
+                    value_counts = df[target_col].value_counts().head(10)
+                    fig = px.pie(
+                        values=value_counts.values,
+                        names=value_counts.index,
+                        title=f"Distribution of {target_col}",
+                        color_discrete_sequence=st.session_state.viz_generator.color_palette
+                    )
+                
+                elif chart_type == "histogram":
+                    fig = px.histogram(
+                        df, x=target_col,
+                        title=f"Distribution of {target_col}",
+                        color_discrete_sequence=st.session_state.viz_generator.color_palette
+                    )
+                
+                elif chart_type == "box":
+                    if x_col:
+                        fig = px.box(
+                            df, x=x_col, y=y_col,
+                            title=f"Box Plot of {y_col} by {x_col}",
+                            color_discrete_sequence=st.session_state.viz_generator.color_palette
+                        )
+                    else:
+                        fig = px.box(
+                            df, y=y_col,
+                            title=f"Box Plot of {y_col}",
+                            color_discrete_sequence=st.session_state.viz_generator.color_palette
+                        )
+                
+                elif chart_type == "heatmap":
+                    numeric_df = df.select_dtypes(include=[np.number])
+                    if len(numeric_df.columns) >= 2:
+                        corr_matrix = numeric_df.corr()
+                        fig = px.imshow(
+                            corr_matrix,
+                            title="Correlation Heatmap",
+                            color_continuous_scale="RdBu_r",
+                            aspect="auto"
+                        )
+                
+                elif chart_type == "auto":
+                    # Generate multiple automatic visualizations
+                    auto_vizs = st.session_state.viz_generator.generate_automatic_visualizations(df)
+                    for i, viz in enumerate(auto_vizs):
+                        st.plotly_chart(viz, use_container_width=True, key=f"auto_viz_{i}")
+                    return
+                
+                # Display the generated chart
+                if fig:
+                    # Apply enterprise styling
+                    fig.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        title_font=dict(size=16, color='#1E293B'),
+                        font=dict(color='#1E293B'),
+                        showlegend=True
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Offer download option
+                    img_data = pio.to_image(fig, format='png', width=1200, height=800)
+                    st.download_button(
+                        label="📥 Download Chart as PNG",
+                        data=img_data,
+                        file_name=f"{chart_type}_chart.png",
+                        mime="image/png",
+                        help="Download the chart as a high-quality PNG image"
+                    )
+                else:
+                    st.warning("Could not generate visualization. Please check your column selections.")
+                    
+            except Exception as e:
+                st.error(f"Error creating visualization: {str(e)}")
 
 if __name__ == "__main__":
     main()

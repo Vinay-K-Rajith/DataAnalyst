@@ -50,31 +50,53 @@ def optimize_dataframe_types(df):
         for col in df.columns:
             col_type = df[col].dtype
             
-            # Convert object columns to category if they have low cardinality
+            # Handle object columns carefully to avoid Arrow serialization issues
             if col_type == 'object':
+                # Check if column contains complex objects (like lists, dicts)
+                try:
+                    # Test if first non-null value is a complex object
+                    first_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+                    if isinstance(first_val, (list, dict)):
+                        # Convert complex objects to string representation
+                        df[col] = df[col].astype(str)
+                        continue
+                except:
+                    pass
+                
+                # Convert to category if low cardinality and not complex objects
                 if df[col].nunique() / len(df) < 0.5:  # Less than 50% unique values
-                    df[col] = df[col].astype('category')
+                    try:
+                        df[col] = df[col].astype('category')
+                    except:
+                        # If category conversion fails, keep as string
+                        df[col] = df[col].astype(str)
             
             # Optimize numeric types
             elif col_type in ['int64', 'int32']:
                 # Try to downcast integer types
-                c_min = df[col].min()
-                c_max = df[col].max()
-                
-                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
-                    df[col] = df[col].astype(np.int8)
-                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
-                    df[col] = df[col].astype(np.int16)
-                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
-                    df[col] = df[col].astype(np.int32)
+                try:
+                    c_min = df[col].min()
+                    c_max = df[col].max()
+                    
+                    if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                        df[col] = df[col].astype(np.int8)
+                    elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                        df[col] = df[col].astype(np.int16)
+                    elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                        df[col] = df[col].astype(np.int32)
+                except:
+                    pass  # Keep original type if optimization fails
                     
             elif col_type in ['float64', 'float32']:
                 # Try to downcast float types
-                c_min = df[col].min()
-                c_max = df[col].max()
-                
-                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
-                    df[col] = df[col].astype(np.float32)
+                try:
+                    c_min = df[col].min()
+                    c_max = df[col].max()
+                    
+                    if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                        df[col] = df[col].astype(np.float32)
+                except:
+                    pass  # Keep original type if optimization fails
         
         optimized_memory = df.memory_usage(deep=True).sum()
         print(f"Memory usage reduced from {original_memory/1024**2:.2f} MB to {optimized_memory/1024**2:.2f} MB")
@@ -84,6 +106,39 @@ def optimize_dataframe_types(df):
     except Exception as e:
         print(f"Error optimizing dataframe: {e}")
         return df
+
+def safe_dataframe_display(df, max_rows=1000):
+    """Safely prepare dataframe for display by handling complex objects"""
+    try:
+        display_df = df.copy()
+        
+        # Convert complex object columns to string representation
+        for col in display_df.columns:
+            if display_df[col].dtype == 'object':
+                try:
+                    # Check if any values are complex objects
+                    sample_vals = display_df[col].dropna().head(5)
+                    has_complex = any(isinstance(val, (list, dict, tuple)) for val in sample_vals)
+                    
+                    if has_complex:
+                        # Convert to string representation
+                        display_df[col] = display_df[col].apply(
+                            lambda x: str(x) if pd.notna(x) else x
+                        )
+                except:
+                    # If there's any issue, convert entire column to string
+                    display_df[col] = display_df[col].astype(str)
+        
+        # Limit rows for performance
+        if len(display_df) > max_rows:
+            display_df = display_df.head(max_rows)
+            
+        return display_df
+        
+    except Exception as e:
+        print(f"Error preparing dataframe for display: {e}")
+        # Return a simple version as fallback
+        return df.head(100).astype(str)
 
 def chunk_dataframe(df, chunk_size=10000):
     """Split dataframe into chunks for processing large datasets"""
