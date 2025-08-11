@@ -17,64 +17,343 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for enhanced styling
+# Enterprise-grade CSS styling
 st.markdown("""
 <style>
-    .main-header {
-        background: linear-gradient(90deg, #4F7CFF 0%, #6B9AFF 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    .stApp {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    /* Header Styling */
+    .enterprise-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 0;
+        margin: -1rem -1rem 2rem -1rem;
         color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .logo-icon {
+        background: rgba(255,255,255,0.2);
+        padding: 0.8rem;
+        border-radius: 12px;
+        font-size: 1.5rem;
+    }
+    
+    .brand-text h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+    
+    .brand-text p {
+        margin: 0.3rem 0 0 0;
+        opacity: 0.9;
+        font-size: 0.95rem;
+        font-weight: 400;
+    }
+    
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255,255,255,0.15);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        background: #10B981;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    /* Sidebar Styling */
+    .sidebar-header {
+        background: linear-gradient(135deg, #4F7CFF 0%, #6366F1 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
         text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(79, 124, 255, 0.2);
+    }
+    
+    .sidebar-title {
+        color: white;
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    /* Metric Cards */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
     }
     
     .metric-card {
-        background: #F8FAFC;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #4F7CFF;
-        margin: 0.5rem 0;
-    }
-    
-    .upload-section {
-        background: #F8FAFC;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border: 2px dashed #4F7CFF;
-        margin: 1rem 0;
-    }
-    
-    .chat-message {
         background: white;
-        padding: 1rem;
+        padding: 1.5rem 1rem;
+        border-radius: 12px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 124, 255, 0.15);
+        border-color: #4F7CFF;
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #4F7CFF, #6366F1);
+    }
+    
+    .metric-label {
+        color: #64748B;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0;
+    }
+    
+    .metric-value {
+        color: #0F172A;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0.5rem 0 0 0;
+        line-height: 1;
+    }
+    
+    /* Cards and Containers */
+    .enterprise-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #F1F5F9;
+    }
+    
+    .card-title {
+        color: #0F172A;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Buttons */
+    .enterprise-button {
+        background: linear-gradient(135deg, #4F7CFF 0%, #6366F1 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
         border-radius: 8px;
-        margin: 0.5rem 0;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+    
+    .enterprise-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79, 124, 255, 0.3);
+    }
+    
+    /* Status Messages */
+    .success-alert {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .error-alert {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .info-alert {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 500;
+    }
+    
+    /* Data Table Styling */
+    .dataframe {
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    /* Tab Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        background: #F8FAFC;
+        padding: 0.5rem;
+        border-radius: 8px;
         border: 1px solid #E2E8F0;
     }
     
-    .success-message {
-        background: #F0FDF4;
-        color: #166534;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #22C55E;
+    .stTabs [data-baseweb="tab"] {
+        background: white;
+        border-radius: 6px;
+        border: 1px solid transparent;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
     
-    .info-card {
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #4F7CFF 0%, #6366F1 100%);
+        color: white;
+        border-color: #4F7CFF;
+    }
+    
+    /* Chat Interface */
+    .chat-container {
         background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 0;
+        overflow: hidden;
+    }
+    
+    .chat-header {
+        background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #E2E8F0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .chat-messages {
+        height: 400px;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    
+    /* Upload Zone */
+    .upload-zone {
+        border: 2px dashed #CBD5E1;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        background: #F8FAFC;
+        transition: all 0.2s ease;
         margin: 1rem 0;
     }
     
-    .tab-header {
-        background: #4F7CFF;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px 5px 0 0;
+    .upload-zone:hover {
+        border-color: #4F7CFF;
+        background: #F0F4FF;
     }
+    
+    /* Progress Indicators */
+    .progress-bar {
+        background: #E2E8F0;
+        border-radius: 10px;
+        overflow: hidden;
+        height: 8px;
+        margin: 0.5rem 0;
+    }
+    
+    .progress-fill {
+        background: linear-gradient(90deg, #4F7CFF, #6366F1);
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .header-content {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .metric-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stDeployButton {display:none;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,19 +368,33 @@ if 'viz_generator' not in st.session_state:
     st.session_state.viz_generator = VisualizationGenerator()
 
 def main():
-    # Enhanced header with custom styling
+    # Enterprise header
     st.markdown("""
-    <div class="main-header">
-        <h1>📊 AI-Powered Data Analyst</h1>
-        <p>Upload your dataset and ask questions in natural language. The AI will analyze your data and create visualizations automatically.</p>
+    <div class="enterprise-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon">📊</div>
+                <div class="brand-text">
+                    <h1>DataIntel Pro</h1>
+                    <p>Enterprise AI-Powered Analytics Platform</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>AI Engine Active</span>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Sidebar for file upload and dataset info
+    # Professional sidebar
     with st.sidebar:
         st.markdown("""
-        <div style="background: linear-gradient(90deg, #4F7CFF 0%, #6B9AFF 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-            <h2 style="color: white; margin: 0; text-align: center;">📁 Dataset Upload</h2>
+        <div class="sidebar-header">
+            <h3 class="sidebar-title">
+                <span>📁</span>
+                <span>Data Management</span>
+            </h3>
         </div>
         """, unsafe_allow_html=True)
         
@@ -126,78 +419,115 @@ def main():
                     if validation_result['is_valid']:
                         st.session_state.current_dataframe = df
                         st.markdown("""
-                        <div class="success-message">
-                            <strong>✅ Dataset loaded successfully!</strong>
+                        <div class="success-alert">
+                            <span>✅</span>
+                            <span><strong>Dataset loaded successfully!</strong></span>
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Display dataset info with enhanced styling
-                        st.markdown("""
-                        <div style="background: linear-gradient(90deg, #4F7CFF 0%, #6B9AFF 100%); padding: 0.8rem; border-radius: 8px; margin: 1rem 0;">
-                            <h3 style="color: white; margin: 0; text-align: center;">📊 Dataset Information</h3>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        # Enterprise metrics grid
+                        st.markdown('<div class="metric-grid">', unsafe_allow_html=True)
                         
-                        # Create metric cards
                         col1, col2, col3 = st.columns(3)
                         with col1:
                             st.markdown(f"""
                             <div class="metric-card">
-                                <h4 style="margin: 0; color: #4F7CFF;">Rows</h4>
-                                <h2 style="margin: 0.2rem 0;">{len(df):,}</h2>
+                                <div class="metric-label">Total Rows</div>
+                                <div class="metric-value">{len(df):,}</div>
                             </div>
                             """, unsafe_allow_html=True)
                         with col2:
                             st.markdown(f"""
                             <div class="metric-card">
-                                <h4 style="margin: 0; color: #4F7CFF;">Columns</h4>
-                                <h2 style="margin: 0.2rem 0;">{len(df.columns)}</h2>
+                                <div class="metric-label">Columns</div>
+                                <div class="metric-value">{len(df.columns)}</div>
                             </div>
                             """, unsafe_allow_html=True)
                         with col3:
                             st.markdown(f"""
                             <div class="metric-card">
-                                <h4 style="margin: 0; color: #4F7CFF;">Size</h4>
-                                <h2 style="margin: 0.2rem 0;">{df.memory_usage(deep=True).sum() / 1024**2:.1f} MB</h2>
+                                <div class="metric-label">Data Size</div>
+                                <div class="metric-value">{df.memory_usage(deep=True).sum() / 1024**2:.1f}MB</div>
                             </div>
                             """, unsafe_allow_html=True)
                         
-                        # Show column info
-                        with st.expander("Column Details"):
-                            col_info = []
-                            for col in df.columns:
-                                col_info.append({
-                                    "Column": col,
-                                    "Type": str(df[col].dtype),
-                                    "Non-null": df[col].count(),
-                                    "Null": df[col].isnull().sum()
-                                })
-                            st.dataframe(pd.DataFrame(col_info), use_container_width=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
                         
-                        # Data preview
-                        with st.expander("Data Preview"):
-                            st.dataframe(df.head(10), use_container_width=True)
+                        # Enterprise data overview cards
+                        st.markdown("""
+                        <div class="enterprise-card">
+                            <div class="card-header">
+                                <h4 class="card-title">📋 Column Overview</h4>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Show column info in a more professional layout
+                        col_info = []
+                        for col in df.columns:
+                            col_info.append({
+                                "Column": col,
+                                "Type": str(df[col].dtype),
+                                "Non-null": f"{df[col].count():,}",
+                                "Missing": f"{df[col].isnull().sum():,}",
+                                "Unique": f"{df[col].nunique():,}"
+                            })
+                        st.dataframe(pd.DataFrame(col_info), use_container_width=True, hide_index=True)
+                        
+                        # Data preview with enterprise styling
+                        st.markdown("""
+                        <div class="enterprise-card">
+                            <div class="card-header">
+                                <h4 class="card-title">👁️ Data Preview</h4>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.dataframe(df.head(10), use_container_width=True, hide_index=True)
                     else:
                         st.error(f"❌ Dataset validation failed: {validation_result['error']}")
                         
             except Exception as e:
                 st.error(f"❌ Error loading dataset: {str(e)}")
 
-    # Main content area
+    # Main content area with enterprise tabs
     if st.session_state.current_dataframe is not None:
-        # Create tabs for different functionalities
-        tab1, tab2, tab3 = st.tabs(["💬 Chat Analysis", "📈 Quick Insights", "📊 Data Explorer"])
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "🤖 AI Assistant", 
+            "📊 Analytics Dashboard", 
+            "🔍 Data Explorer", 
+            "⚙️ Advanced Tools"
+        ])
         
         with tab1:
             chat_interface()
         
         with tab2:
-            quick_insights()
+            analytics_dashboard()
             
         with tab3:
             data_explorer()
+            
+        with tab4:
+            advanced_tools()
     else:
-        st.info("👆 Please upload a dataset using the sidebar to get started.")
+        # Professional welcome screen
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">🚀 Getting Started</h4>
+            </div>
+            <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                <h3 style="color: #4F7CFF; margin-bottom: 1rem;">Welcome to DataIntel Pro</h3>
+                <p style="color: #64748B; font-size: 1.1rem; margin-bottom: 2rem;">
+                    Upload your dataset to begin advanced AI-powered analysis
+                </p>
+                <div style="background: #F8FAFC; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #4F7CFF;">
+                    <strong>Supported formats:</strong> CSV, Excel (.xlsx, .xls), JSON
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Show example queries
         st.subheader("🔍 Example Queries You Can Ask:")
@@ -267,8 +597,15 @@ def load_dataset(uploaded_file):
         return None
 
 def chat_interface():
-    """Interactive chat interface for data analysis"""
-    st.header("💬 Chat with Your Data")
+    """Enterprise AI Assistant interface"""
+    st.markdown("""
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h4 class="card-title">🤖 AI Data Assistant</h4>
+            <div style="color: #64748B; font-size: 0.9rem;">Ask questions in natural language</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     df = st.session_state.current_dataframe
     
@@ -336,95 +673,268 @@ def chat_interface():
                         "content": error_msg
                     })
 
-def quick_insights():
-    """Generate quick insights about the dataset"""
-    st.header("📈 Quick Insights")
+def analytics_dashboard():
+    """Enterprise analytics dashboard"""
+    st.markdown("""
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h4 class="card-title">📊 Analytics Dashboard</h4>
+            <div style="color: #64748B; font-size: 0.9rem;">Comprehensive data insights and automated analysis</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     df = st.session_state.current_dataframe
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Basic Statistics")
-        if st.button("Generate Statistics"):
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">📈 Statistical Summary</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Generate Statistics", key="stats_btn", help="Generate comprehensive statistical analysis"):
             with st.spinner("Generating statistics..."):
                 stats = df.describe(include='all')
-                st.dataframe(stats, use_container_width=True)
+                st.dataframe(stats, use_container_width=True, hide_index=False)
     
     with col2:
-        st.subheader("Data Quality Report")
-        if st.button("Analyze Data Quality"):
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">🔍 Data Quality Assessment</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Analyze Data Quality", key="quality_btn", help="Comprehensive data quality analysis"):
             with st.spinner("Analyzing data quality..."):
-                quality_report = {
-                    "Total Rows": len(df),
-                    "Total Columns": len(df.columns),
-                    "Missing Values": df.isnull().sum().sum(),
-                    "Duplicate Rows": df.duplicated().sum(),
-                    "Memory Usage (MB)": df.memory_usage(deep=True).sum() / 1024**2
-                }
+                missing_count = df.isnull().sum().sum()
+                duplicate_count = df.duplicated().sum()
+                memory_usage = df.memory_usage(deep=True).sum() / 1024**2
                 
-                for key, value in quality_report.items():
-                    if isinstance(value, float):
-                        st.metric(key, f"{value:.2f}")
-                    else:
-                        st.metric(key, f"{value:,}")
+                # Quality metrics in enterprise style
+                quality_metrics = f"""
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Completeness</div>
+                        <div class="metric-value">{((1 - missing_count/(len(df)*len(df.columns)))*100):.1f}%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Duplicates</div>
+                        <div class="metric-value">{duplicate_count:,}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Memory</div>
+                        <div class="metric-value">{memory_usage:.1f}MB</div>
+                    </div>
+                </div>
+                """
+                st.markdown(quality_metrics, unsafe_allow_html=True)
 
-    # Auto-generate insights
-    st.subheader("🔍 AI-Generated Insights")
-    if st.button("Generate Automatic Insights"):
-        with st.spinner("Generating insights..."):
+    # AI-Generated Insights with enterprise styling
+    st.markdown("""
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h4 class="card-title">🧠 AI-Generated Insights</h4>
+            <div style="color: #64748B; font-size: 0.9rem;">Automated analysis and pattern detection</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.button("🚀 Generate Comprehensive Analysis", key="insights_btn", help="AI-powered insights and visualizations"):
+        with st.spinner("Analyzing data with AI..."):
             try:
                 insights = st.session_state.data_analyzer.generate_automatic_insights(df)
-                st.write(insights)
+                
+                # Display insights in enterprise card
+                st.markdown(f"""
+                <div class="enterprise-card">
+                    <div class="card-header">
+                        <h4 class="card-title">📋 Analysis Results</h4>
+                    </div>
+                    <div style="line-height: 1.6; color: #374151;">
+                        {insights}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
                 
                 # Generate automatic visualizations
+                st.markdown("""
+                <div class="enterprise-card">
+                    <div class="card-header">
+                        <h4 class="card-title">📊 Automated Visualizations</h4>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
                 auto_viz = st.session_state.viz_generator.generate_automatic_visualizations(df)
                 for viz in auto_viz:
                     st.plotly_chart(viz, use_container_width=True)
                     
             except Exception as e:
-                st.error(f"Error generating insights: {str(e)}")
+                st.markdown(f"""
+                <div class="error-alert">
+                    <span>⚠️</span>
+                    <span>Error generating insights: {str(e)}</span>
+                </div>
+                """, unsafe_allow_html=True)
 
-def data_explorer():
-    """Interactive data explorer"""
-    st.header("📊 Data Explorer")
+def advanced_tools():
+    """Advanced enterprise tools"""
+    st.markdown("""
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h4 class="card-title">⚙️ Advanced Analytics Tools</h4>
+            <div style="color: #64748B; font-size: 0.9rem;">Professional data science capabilities</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     df = st.session_state.current_dataframe
     
-    # Data filtering
-    st.subheader("🔧 Data Filters")
+    col1, col2 = st.columns(2)
     
-    # Column selector
-    selected_columns = st.multiselect(
-        "Select columns to display",
-        df.columns.tolist(),
-        default=df.columns.tolist()[:10]  # Show first 10 columns by default
-    )
-    
-    if selected_columns:
-        filtered_df = df[selected_columns]
+    with col1:
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">🔍 Outlier Detection</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Row range selector
-        max_rows = len(filtered_df)
-        row_range = st.slider(
-            "Select row range",
-            0, max_rows,
-            (0, min(100, max_rows)),
-            step=1
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        if numeric_cols:
+            selected_col = st.selectbox("Select column for outlier analysis", numeric_cols, key="outlier_col")
+            if st.button("Detect Outliers", key="outlier_btn"):
+                outlier_info = st.session_state.data_analyzer.detect_outliers(df, selected_col)
+                if outlier_info:
+                    st.markdown(f"""
+                    <div class="metric-grid">
+                        <div class="metric-card">
+                            <div class="metric-label">Outliers Found</div>
+                            <div class="metric-value">{outlier_info['count']}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Percentage</div>
+                            <div class="metric-value">{outlier_info['percentage']:.1f}%</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">📈 Correlation Analysis</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Analyze Correlations", key="corr_btn"):
+            corr_info = st.session_state.data_analyzer.analyze_correlations(df)
+            if corr_info and corr_info['strong_correlations']:
+                st.write("**Strong Correlations Found:**")
+                for corr in corr_info['strong_correlations']:
+                    st.write(f"• {corr['column1']} ↔ {corr['column2']}: {corr['correlation']:.3f}")
+            else:
+                st.info("No strong correlations detected (threshold: 0.7)")
+
+def data_explorer():
+    """Enterprise data explorer"""
+    st.markdown("""
+    <div class="enterprise-card">
+        <div class="card-header">
+            <h4 class="card-title">🔍 Data Explorer</h4>
+            <div style="color: #64748B; font-size: 0.9rem;">Interactive data filtering and export</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    df = st.session_state.current_dataframe
+    
+    # Professional filtering interface
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">🔧 Data Filters</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Column selector
+        selected_columns = st.multiselect(
+            "Select columns to display",
+            df.columns.tolist(),
+            default=df.columns.tolist()[:10],
+            help="Choose which columns to include in the filtered view"
         )
         
-        # Display filtered data
-        st.subheader("📋 Filtered Data")
-        display_df = filtered_df.iloc[row_range[0]:row_range[1]]
-        st.dataframe(display_df, use_container_width=True)
+        if selected_columns:
+            filtered_df = df[selected_columns]
+            
+            # Row range selector
+            max_rows = len(filtered_df)
+            row_range = st.slider(
+                "Select row range",
+                0, max_rows,
+                (0, min(100, max_rows)),
+                step=1,
+                help="Choose the range of rows to display"
+            )
+    
+    with col2:
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">📊 Filter Summary</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Download filtered data
+        if selected_columns:
+            st.markdown(f"""
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Selected Columns</div>
+                    <div class="metric-value">{len(selected_columns)}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Rows Shown</div>
+                    <div class="metric-value">{row_range[1] - row_range[0]:,}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    if selected_columns:
+        # Display filtered data
+        st.markdown("""
+        <div class="enterprise-card">
+            <div class="card-header">
+                <h4 class="card-title">📋 Filtered Dataset</h4>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        display_df = filtered_df.iloc[row_range[0]:row_range[1]]
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+        
+        # Professional download button
         csv = display_df.to_csv(index=False)
         st.download_button(
-            label="📥 Download Filtered Data as CSV",
+            label="📥 Export Filtered Data",
             data=csv,
-            file_name="filtered_data.csv",
-            mime="text/csv"
+            file_name=f"filtered_data_{len(display_df)}_rows.csv",
+            mime="text/csv",
+            help="Download the current filtered view as CSV"
         )
 
 if __name__ == "__main__":
