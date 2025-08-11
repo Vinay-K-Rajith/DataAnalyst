@@ -642,7 +642,7 @@ def chat_interface():
                     showlegend=True,
                     margin=dict(l=10, r=10, t=40, b=10)
                 )
-                st.plotly_chart(viz, use_container_width=True)
+                st.plotly_chart(viz, use_container_width=True, key=f"chart_history_{hash(str(message))}")
                 
                 # Add download option for the chart
                 try:
@@ -713,7 +713,7 @@ def chat_interface():
                                     showlegend=True,
                                     margin=dict(l=10, r=10, t=40, b=10)
                                 )
-                                st.plotly_chart(viz, use_container_width=True)
+                                st.plotly_chart(viz, use_container_width=True, key=f"chart_current_{len(st.session_state.chat_history)}")
                                 
                                 # Add download option
                                 try:
@@ -734,7 +734,7 @@ def chat_interface():
                                 auto_vizs = st.session_state.viz_generator.generate_automatic_visualizations(df)
                                 if auto_vizs:
                                     viz = auto_vizs[0]  # Use the first auto-generated visualization
-                                    st.plotly_chart(viz, use_container_width=True)
+                                    st.plotly_chart(viz, use_container_width=True, key=f"chart_fallback_{len(st.session_state.chat_history)}")
                     
                     # Add to chat history with or without visualization
                     st.session_state.chat_history.append({
@@ -852,8 +852,8 @@ def analytics_dashboard():
                 """, unsafe_allow_html=True)
                 
                 auto_viz = st.session_state.viz_generator.generate_automatic_visualizations(df)
-                for viz in auto_viz:
-                    st.plotly_chart(viz, use_container_width=True)
+                for i, viz in enumerate(auto_viz):
+                    st.plotly_chart(viz, use_container_width=True, key=f"auto_viz_{i}")
                     
             except Exception as e:
                 st.markdown(f"""
@@ -1159,7 +1159,7 @@ def visualization_center():
                     # Generate multiple automatic visualizations
                     auto_vizs = st.session_state.viz_generator.generate_automatic_visualizations(df)
                     for i, viz in enumerate(auto_vizs):
-                        st.plotly_chart(viz, use_container_width=True, key=f"auto_viz_{i}")
+                        st.plotly_chart(viz, use_container_width=True, key=f"sidebar_auto_viz_{i}")
                     return
                 
                 # Display the generated chart
@@ -1172,7 +1172,7 @@ def visualization_center():
                         font=dict(color='#1E293B'),
                         showlegend=True
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=True, key=f"sidebar_viz_{len(st.session_state.chat_history)}_{chart_type}")
                     
                     # Offer download option
                     img_data = pio.to_image(fig, format='png', width=1200, height=800)
