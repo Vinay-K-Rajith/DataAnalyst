@@ -535,16 +535,16 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Show example queries
-        st.subheader("🔍 Example Queries You Can Ask:")
+        # Show example queries with visualization focus
+        st.subheader("🔍 Example Queries to Try (with automatic visualizations):")
         examples = [
-            "Show me the distribution of values in the sales column",
-            "Create a correlation heatmap of all numeric columns",
-            "What are the top 10 categories by revenue?",
-            "Show trends over time for the date column",
-            "Find outliers in the dataset",
-            "Create a scatter plot comparing price and quantity",
-            "Generate summary statistics for all columns"
+            "Show me the distribution of prices",
+            "Display revenue by category",
+            "What's the relationship between price and quantity?",
+            "Create a pie chart of regions",
+            "Show me trends over time",
+            "Compare ratings across categories", 
+            "Plot a histogram of quantities sold"
         ]
         
         for i, example in enumerate(examples, 1):
@@ -679,13 +679,19 @@ def chat_interface():
                     
                     # Generate and display visualization if suggested
                     viz = None
-                    if analysis_result.get("needs_visualization"):
+                    # Always try to generate visualization for better user experience
+                    if analysis_result.get("needs_visualization") or any(word in prompt.lower() for word in ["show", "plot", "chart", "graph", "visualize", "display"]):
                         with st.spinner("Creating visualization..."):
-                            viz = st.session_state.viz_generator.generate_visualization(
-                                df, 
-                                prompt, 
-                                analysis_result
-                            )
+                            try:
+                                viz = st.session_state.viz_generator.generate_visualization(
+                                    df, 
+                                    prompt, 
+                                    analysis_result
+                                )
+                                print(f"Debug - Generated viz: {viz is not None}")
+                            except Exception as e:
+                                print(f"Debug - Viz generation error: {e}")
+                                st.error(f"Visualization generation error: {e}")
                             
                             if viz is not None:
                                 # Display visualization elegantly
@@ -722,6 +728,13 @@ def chat_interface():
                                     )
                                 except:
                                     pass
+                            else:
+                                # If no specific viz generated, try to create a simple automatic one
+                                st.info("💡 Let me generate an automatic visualization based on your data...")
+                                auto_vizs = st.session_state.viz_generator.generate_automatic_visualizations(df)
+                                if auto_vizs:
+                                    viz = auto_vizs[0]  # Use the first auto-generated visualization
+                                    st.plotly_chart(viz, use_container_width=True)
                     
                     # Add to chat history with or without visualization
                     st.session_state.chat_history.append({

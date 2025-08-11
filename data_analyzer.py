@@ -84,11 +84,23 @@ class DataAnalyzer:
             
             ai_response = response.text if response.text else "I couldn't analyze your query. Please try rephrasing it."
             
-            # Check if visualization is needed
-            needs_visualization = "VISUALIZATION_NEEDED: true" in ai_response.upper()
+            # Check if visualization is needed - improved detection
+            needs_visualization = (
+                "VISUALIZATION_NEEDED: true" in ai_response.upper() or
+                "visualization would be helpful" in ai_response.lower() or
+                "chart" in ai_response.lower() or
+                "plot" in ai_response.lower() or
+                "graph" in ai_response.lower() or
+                any(word in ai_response.lower() for word in ["show", "display", "visualize"])
+            )
             
             # Extract visualization suggestion
             viz_suggestion = self._extract_visualization_suggestion(ai_response)
+            
+            # Debug print for testing
+            print(f"Debug - Needs visualization: {needs_visualization}")
+            print(f"Debug - Viz suggestion: {viz_suggestion}")
+            print(f"Debug - Response snippet: {ai_response[:200]}...")
             
             return {
                 "response": ai_response,
