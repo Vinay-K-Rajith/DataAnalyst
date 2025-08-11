@@ -69,9 +69,12 @@ class DataAnalyzer:
             1. A detailed analysis answering the user's query
             2. Specific insights based on the actual data
             3. Whether a visualization would be helpful (respond with "VISUALIZATION_NEEDED: true/false")
-            4. If visualization is needed, suggest the type of chart/plot
+            4. If visualization is needed, suggest the best chart type from: bar, line, scatter, pie, histogram, box, heatmap
+            5. Include the column names that should be used for the visualization
             
+            Format your response with clear sections and include VISUALIZATION_NEEDED as a separate line.
             Be specific and reference actual values from the data when possible.
+            When suggesting visualizations, always explain why that chart type is most appropriate for the query.
             """
             
             response = self.client.models.generate_content(

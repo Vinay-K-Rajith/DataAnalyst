@@ -14,9 +14,10 @@ Color Scheme: Professional blue theme (#4F7CFF primary, #6366F1 secondary) with 
 
 ### Frontend Architecture
 - **Framework**: Streamlit web application framework
-- **Layout**: Wide layout with expandable sidebar for file upload and dataset information
+- **Layout**: Wide layout with expandable sidebar for file upload and comprehensive visualization center
 - **State Management**: Session state management for chat history, current dataframe, and AI components
-- **User Interface**: Chat-based interface allowing natural language queries about uploaded data
+- **User Interface**: Enterprise chat-based interface with AI-generated visualizations, elegant styling, and downloadable charts
+- **Visualization Integration**: Seamless AI-to-visualization pipeline with automatic chart generation based on query analysis
 
 ### Backend Architecture
 - **Core Components**:

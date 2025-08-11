@@ -55,21 +55,24 @@ class VisualizationGenerator:
         """Determine visualization type based on query keywords"""
         query_lower = query.lower()
         
-        # Keyword mapping
-        if any(word in query_lower for word in ["distribution", "histogram", "frequency"]):
+        # Enhanced keyword mapping with more specific detection
+        if any(word in query_lower for word in ["distribution", "histogram", "frequency", "spread", "range"]):
             return "histogram"
-        elif any(word in query_lower for word in ["correlation", "heatmap", "relationship between all"]):
+        elif any(word in query_lower for word in ["correlation", "heatmap", "relationship between all", "correlations", "related"]):
             return "correlation"
-        elif any(word in query_lower for word in ["scatter", "relationship", "vs", "compare"]):
+        elif any(word in query_lower for word in ["scatter", "relationship", " vs ", "compare", "correlation between"]):
             return "scatter"
-        elif any(word in query_lower for word in ["trend", "time", "over time", "line"]):
+        elif any(word in query_lower for word in ["trend", "time", "over time", "line", "timeline", "progression"]):
             return "line"
-        elif any(word in query_lower for word in ["proportion", "percentage", "pie"]):
+        elif any(word in query_lower for word in ["proportion", "percentage", "pie", "composition", "breakdown", "share"]):
             return "pie"
-        elif any(word in query_lower for word in ["top", "bottom", "highest", "lowest", "ranking"]):
+        elif any(word in query_lower for word in ["top", "bottom", "highest", "lowest", "ranking", "best", "worst", "most", "least"]):
             return "bar"
-        elif any(word in query_lower for word in ["outlier", "box plot", "quartile"]):
+        elif any(word in query_lower for word in ["outlier", "box plot", "quartile", "median", "whisker"]):
             return "box"
+        elif any(word in query_lower for word in ["show", "display", "visualize", "plot", "chart", "graph"]):
+            # If general visualization request, use auto-detection
+            return "auto"
         else:
             return "auto"
     
@@ -99,7 +102,8 @@ class VisualizationGenerator:
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             title_font=dict(size=16, color='#1E293B'),
-            font=dict(color='#1E293B')
+            font=dict(color='#1E293B'),
+            margin=dict(l=10, r=10, t=60, b=10)
         )
         
         return fig

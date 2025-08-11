@@ -615,12 +615,48 @@ def chat_interface():
     
     df = st.session_state.current_dataframe
     
-    # Display chat history
+    # Display chat history with elegant visualization styling
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
+            # Display the text content
             st.write(message["content"])
-            if "visualization" in message:
-                st.plotly_chart(message["visualization"], use_container_width=True)
+            
+            # Display visualization if present with elegant styling
+            if "visualization" in message and message["visualization"] is not None:
+                st.markdown("""
+                <div class="enterprise-card" style="margin-top: 1rem;">
+                    <div class="card-header">
+                        <h4 class="card-title">📊 AI-Generated Visualization</h4>
+                        <div style="color: #64748B; font-size: 0.9rem;">Based on your query analysis</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Apply enterprise styling to the chart
+                viz = message["visualization"]
+                viz.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    title_font=dict(size=16, color='#1E293B'),
+                    font=dict(color='#1E293B'),
+                    showlegend=True,
+                    margin=dict(l=10, r=10, t=40, b=10)
+                )
+                st.plotly_chart(viz, use_container_width=True)
+                
+                # Add download option for the chart
+                try:
+                    img_data = pio.to_image(viz, format='png', width=1200, height=800)
+                    st.download_button(
+                        label="📥 Download Chart",
+                        data=img_data,
+                        file_name="ai_generated_chart.png",
+                        mime="image/png",
+                        help="Download this AI-generated visualization",
+                        key=f"download_{hash(str(message))}"
+                    )
+                except:
+                    pass  # Skip download if there's an issue
     
     # Chat input
     if prompt := st.chat_input("Ask me anything about your data..."):
@@ -642,34 +678,57 @@ def chat_interface():
                     st.write(analysis_result["response"])
                     
                     # Generate and display visualization if suggested
+                    viz = None
                     if analysis_result.get("needs_visualization"):
-                        viz = st.session_state.viz_generator.generate_visualization(
-                            df, 
-                            prompt, 
-                            analysis_result
-                        )
-                        
-                        if viz is not None:
-                            st.plotly_chart(viz, use_container_width=True)
+                        with st.spinner("Creating visualization..."):
+                            viz = st.session_state.viz_generator.generate_visualization(
+                                df, 
+                                prompt, 
+                                analysis_result
+                            )
                             
-                            # Add to chat history with visualization
-                            st.session_state.chat_history.append({
-                                "role": "assistant",
-                                "content": analysis_result["response"],
-                                "visualization": viz
-                            })
-                        else:
-                            # Add to chat history without visualization
-                            st.session_state.chat_history.append({
-                                "role": "assistant",
-                                "content": analysis_result["response"]
-                            })
-                    else:
-                        # Add to chat history
-                        st.session_state.chat_history.append({
-                            "role": "assistant",
-                            "content": analysis_result["response"]
-                        })
+                            if viz is not None:
+                                # Display visualization elegantly
+                                st.markdown("""
+                                <div class="enterprise-card" style="margin-top: 1rem;">
+                                    <div class="card-header">
+                                        <h4 class="card-title">📊 AI-Generated Visualization</h4>
+                                        <div style="color: #64748B; font-size: 0.9rem;">Based on your query analysis</div>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                
+                                # Apply enterprise styling
+                                viz.update_layout(
+                                    plot_bgcolor='rgba(0,0,0,0)',
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    title_font=dict(size=16, color='#1E293B'),
+                                    font=dict(color='#1E293B'),
+                                    showlegend=True,
+                                    margin=dict(l=10, r=10, t=40, b=10)
+                                )
+                                st.plotly_chart(viz, use_container_width=True)
+                                
+                                # Add download option
+                                try:
+                                    img_data = pio.to_image(viz, format='png', width=1200, height=800)
+                                    st.download_button(
+                                        label="📥 Download Chart",
+                                        data=img_data,
+                                        file_name="ai_generated_chart.png",
+                                        mime="image/png",
+                                        help="Download this AI-generated visualization",
+                                        key=f"download_current_{len(st.session_state.chat_history)}"
+                                    )
+                                except:
+                                    pass
+                    
+                    # Add to chat history with or without visualization
+                    st.session_state.chat_history.append({
+                        "role": "assistant",
+                        "content": analysis_result["response"],
+                        "visualization": viz
+                    })
                         
                 except Exception as e:
                     error_msg = f"I encountered an error while analyzing your data: {str(e)}"
