@@ -7,6 +7,7 @@ This is a Streamlit-based AI-powered data analysis application that allows users
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI Color Scheme: Professional blue theme with primary color #4F7CFF, matching dashboard design with gradients and clean styling.
 
 ## System Architecture
 

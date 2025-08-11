@@ -12,10 +12,71 @@ from utils import validate_dataframe, chunk_dataframe, optimize_dataframe_types
 # Configure page
 st.set_page_config(
     page_title="AI Data Analyst",
-    page_icon="🤖",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Custom CSS for enhanced styling
+st.markdown("""
+<style>
+    .main-header {
+        background: linear-gradient(90deg, #4F7CFF 0%, #6B9AFF 100%);
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        color: white;
+        text-align: center;
+    }
+    
+    .metric-card {
+        background: #F8FAFC;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #4F7CFF;
+        margin: 0.5rem 0;
+    }
+    
+    .upload-section {
+        background: #F8FAFC;
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 2px dashed #4F7CFF;
+        margin: 1rem 0;
+    }
+    
+    .chat-message {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+        border: 1px solid #E2E8F0;
+    }
+    
+    .success-message {
+        background: #F0FDF4;
+        color: #166534;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #22C55E;
+    }
+    
+    .info-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+    }
+    
+    .tab-header {
+        background: #4F7CFF;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px 5px 0 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Initialize session state
 if 'chat_history' not in st.session_state:
@@ -28,12 +89,21 @@ if 'viz_generator' not in st.session_state:
     st.session_state.viz_generator = VisualizationGenerator()
 
 def main():
-    st.title("🤖 AI-Powered Data Analyst")
-    st.markdown("Upload your dataset and ask questions in natural language. The AI will analyze your data and create visualizations automatically.")
+    # Enhanced header with custom styling
+    st.markdown("""
+    <div class="main-header">
+        <h1>📊 AI-Powered Data Analyst</h1>
+        <p>Upload your dataset and ask questions in natural language. The AI will analyze your data and create visualizations automatically.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Sidebar for file upload and dataset info
     with st.sidebar:
-        st.header("📁 Dataset Upload")
+        st.markdown("""
+        <div style="background: linear-gradient(90deg, #4F7CFF 0%, #6B9AFF 100%); padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+            <h2 style="color: white; margin: 0; text-align: center;">📁 Dataset Upload</h2>
+        </div>
+        """, unsafe_allow_html=True)
         
         uploaded_file = st.file_uploader(
             "Choose a file",
@@ -55,13 +125,42 @@ def main():
                     
                     if validation_result['is_valid']:
                         st.session_state.current_dataframe = df
-                        st.success(f"✅ Dataset loaded successfully!")
+                        st.markdown("""
+                        <div class="success-message">
+                            <strong>✅ Dataset loaded successfully!</strong>
+                        </div>
+                        """, unsafe_allow_html=True)
                         
-                        # Display dataset info
-                        st.subheader("📊 Dataset Information")
-                        st.write(f"**Rows:** {len(df):,}")
-                        st.write(f"**Columns:** {len(df.columns)}")
-                        st.write(f"**Memory Usage:** {df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+                        # Display dataset info with enhanced styling
+                        st.markdown("""
+                        <div style="background: linear-gradient(90deg, #4F7CFF 0%, #6B9AFF 100%); padding: 0.8rem; border-radius: 8px; margin: 1rem 0;">
+                            <h3 style="color: white; margin: 0; text-align: center;">📊 Dataset Information</h3>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Create metric cards
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.markdown(f"""
+                            <div class="metric-card">
+                                <h4 style="margin: 0; color: #4F7CFF;">Rows</h4>
+                                <h2 style="margin: 0.2rem 0;">{len(df):,}</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with col2:
+                            st.markdown(f"""
+                            <div class="metric-card">
+                                <h4 style="margin: 0; color: #4F7CFF;">Columns</h4>
+                                <h2 style="margin: 0.2rem 0;">{len(df.columns)}</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with col3:
+                            st.markdown(f"""
+                            <div class="metric-card">
+                                <h4 style="margin: 0; color: #4F7CFF;">Size</h4>
+                                <h2 style="margin: 0.2rem 0;">{df.memory_usage(deep=True).sum() / 1024**2:.1f} MB</h2>
+                            </div>
+                            """, unsafe_allow_html=True)
                         
                         # Show column info
                         with st.expander("Column Details"):

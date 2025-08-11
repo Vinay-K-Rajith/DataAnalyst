@@ -7,8 +7,18 @@ from plotly.subplots import make_subplots
 
 class VisualizationGenerator:
     def __init__(self):
-        """Initialize the VisualizationGenerator"""
-        self.color_palette = px.colors.qualitative.Set3
+        """Initialize the VisualizationGenerator with blue theme colors"""
+        # Custom blue color palette matching the dashboard theme
+        self.color_palette = [
+            '#4F7CFF',  # Primary blue
+            '#6B9AFF',  # Light blue
+            '#3B5CCC',  # Dark blue
+            '#8FB2FF',  # Lighter blue
+            '#2A4BB7',  # Darker blue
+            '#B3CBFF',  # Very light blue
+            '#1E3A8A',  # Navy blue
+            '#DBEAFE'   # Very light blue accent
+        ]
         
     def generate_visualization(self, df, query, analysis_result):
         """Generate visualization based on query and analysis result"""
@@ -85,7 +95,11 @@ class VisualizationGenerator:
         fig.update_layout(
             xaxis_title=target_col,
             yaxis_title="Frequency",
-            showlegend=False
+            showlegend=False,
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+            title_font=dict(size=16, color='#1E293B'),
+            font=dict(color='#1E293B')
         )
         
         return fig
