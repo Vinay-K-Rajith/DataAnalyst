@@ -6,9 +6,30 @@ import plotly.io as pio
 import numpy as np
 import json
 import io
+import threading
+import uuid
+import time
+from threading import Lock
 from data_analyzer import DataAnalyzer
 from visualization_generator import VisualizationGenerator
 from utils import validate_dataframe, chunk_dataframe, optimize_dataframe_types, safe_dataframe_display
+
+# Streamlit rerun helper for compatibility
+def _safe_rerun():
+    try:
+        # Streamlit >= 1.29
+        import streamlit as _st
+        if hasattr(_st, 'rerun'):
+            _st.rerun()
+        else:
+            _st.experimental_rerun()
+    except Exception:
+        pass
+
+# Thread-safe stores for async visualization results (avoid session_state in threads)
+ASYNC_VIZ_RESULTS = {}
+ASYNC_VIZ_PENDING = set()
+ASYNC_VIZ_LOCK = Lock()
 
 # Configure page
 st.set_page_config(
@@ -367,6 +388,8 @@ if 'data_analyzer' not in st.session_state:
     st.session_state.data_analyzer = DataAnalyzer()
 if 'viz_generator' not in st.session_state:
     st.session_state.viz_generator = VisualizationGenerator()
+if 'debug_sync_viz' not in st.session_state:
+    st.session_state.debug_sync_viz = False
 
 def main():
     # Enterprise header
@@ -401,9 +424,12 @@ def main():
         
         uploaded_file = st.file_uploader(
             "Choose a file",
-            type=['csv', 'xlsx', 'xls', 'json'],
-            help="Supported formats: CSV, Excel (.xlsx, .xls), JSON"
+            type=['csv', 'xlsx', 'xls', 'json', 'parquet', 'tsv', 'txt', 'xml'],
+            help="Supported: CSV, Excel (.xlsx, .xls), JSON, Parquet, TSV, TXT (auto-delimited), XML"
         )
+
+        # Debug toggle
+        st.checkbox("Debug: render charts synchronously", key="debug_sync_viz")
         
         if uploaded_file is not None:
             try:
@@ -497,10 +523,8 @@ def main():
 
     # Main content area with enterprise tabs
     if st.session_state.current_dataframe is not None:
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "🤖 AI Assistant", 
-            "📊 Analytics Dashboard", 
-            "🔍 Data Explorer", 
+        tab1, tab2 = st.tabs([
+            "🤖 AI Assistant",
             "⚙️ Advanced Tools"
         ])
         
@@ -508,12 +532,6 @@ def main():
             chat_interface()
         
         with tab2:
-            analytics_dashboard()
-            
-        with tab3:
-            data_explorer()
-            
-        with tab4:
             advanced_tools()
     else:
         # Professional welcome screen
@@ -529,7 +547,7 @@ def main():
                     Upload your dataset to begin advanced AI-powered analysis
                 </p>
                 <div style="background: #F8FAFC; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #4F7CFF;">
-                    <strong>Supported formats:</strong> CSV, Excel (.xlsx, .xls), JSON
+                    <strong>Supported formats:</strong> CSV, Excel (.xlsx, .xls), JSON, Parquet, TSV, TXT, XML
                 </div>
             </div>
         </div>
@@ -551,51 +569,96 @@ def main():
             st.write(f"{i}. {example}")
 
 def load_dataset(uploaded_file):
-    """Load dataset from uploaded file with chunked processing for large files"""
+    """Load dataset from uploaded file with robust multi-format support.
+    - CSV: chunked for large files
+    - Excel: load all sheets and combine with a 'sheet' column
+    - JSON: auto-detect (array/object/lines)
+    - Parquet: if pyarrow/fastparquet available
+    - TSV/TXT: delimiter auto-detection
+    - XML: best-effort via pandas.read_xml
+    """
     try:
         file_extension = uploaded_file.name.split('.')[-1].lower()
         
         if file_extension == 'csv':
             # Check file size for chunked processing
-            file_size = uploaded_file.size
-            
+            file_size = getattr(uploaded_file, 'size', None) or 0
             if file_size > 50 * 1024 * 1024:  # 50MB threshold
-                st.info("Large file detected. Using chunked processing...")
+                st.info("Large CSV detected. Using chunked processing…")
                 chunks = []
                 chunk_size = 10000
-                
-                # Reset file pointer
                 uploaded_file.seek(0)
-                
                 for chunk in pd.read_csv(uploaded_file, chunksize=chunk_size):
                     chunks.append(chunk)
-                    
                 df = pd.concat(chunks, ignore_index=True)
             else:
+                uploaded_file.seek(0)
                 df = pd.read_csv(uploaded_file)
-                
+        
         elif file_extension in ['xlsx', 'xls']:
-            df = pd.read_excel(uploaded_file)
-            
+            # Load all sheets and combine
+            uploaded_file.seek(0)
+            xls = pd.read_excel(uploaded_file, sheet_name=None)
+            if isinstance(xls, dict) and len(xls) > 1:
+                frames = []
+                for sheet_name, sdf in xls.items():
+                    sdf = sdf.copy()
+                    sdf['sheet'] = sheet_name
+                    frames.append(sdf)
+                df = pd.concat(frames, ignore_index=True, sort=False)
+            else:
+                # Single sheet
+                df = list(xls.values())[0] if isinstance(xls, dict) else xls
+        
         elif file_extension == 'json':
-            # Try different JSON orientations
             uploaded_file.seek(0)
             content = uploaded_file.read()
-            
             try:
                 data = json.loads(content)
                 if isinstance(data, list):
                     df = pd.DataFrame(data)
                 elif isinstance(data, dict):
-                    df = pd.DataFrame([data])
+                    # If dict of lists, DataFrame will align; else wrap
+                    try:
+                        df = pd.DataFrame(data)
+                    except ValueError:
+                        df = pd.DataFrame([data])
                 else:
                     df = pd.json_normalize(data)
-            except:
+            except Exception:
+                # Try JSON lines
                 df = pd.read_json(io.StringIO(content.decode('utf-8')), lines=True)
-                
+        
+        elif file_extension in ['tsv']:
+            uploaded_file.seek(0)
+            df = pd.read_csv(uploaded_file, sep='\t')
+        
+        elif file_extension in ['txt']:
+            # Try to infer delimiter
+            uploaded_file.seek(0)
+            try:
+                df = pd.read_csv(uploaded_file, sep=None, engine='python')
+            except Exception:
+                uploaded_file.seek(0)
+                df = pd.read_csv(uploaded_file)  # fallback to comma
+        
+        elif file_extension == 'parquet':
+            uploaded_file.seek(0)
+            try:
+                df = pd.read_parquet(uploaded_file)
+            except Exception as e:
+                raise ValueError("Reading Parquet requires pyarrow or fastparquet") from e
+        
+        elif file_extension == 'xml':
+            uploaded_file.seek(0)
+            try:
+                df = pd.read_xml(uploaded_file)
+            except Exception as e:
+                raise ValueError(f"Failed to parse XML: {e}")
+        
         else:
             raise ValueError(f"Unsupported file format: {file_extension}")
-            
+        
         return df
         
     except Exception as e:
@@ -614,49 +677,119 @@ def chat_interface():
     """, unsafe_allow_html=True)
     
     df = st.session_state.current_dataframe
+
+    # Helper to launch async viz generation
+    def _launch_viz_async(prompt_text: str, analysis_result: dict, async_key: str):
+        # Capture references needed inside the background thread (don't touch session_state there)
+        viz_gen = st.session_state.viz_generator
+        analyzer = st.session_state.data_analyzer
+        df_local = df
+        with ASYNC_VIZ_LOCK:
+            ASYNC_VIZ_PENDING.add(async_key)
+        
+        def _worker(vg, az, df_arg, prompt_arg, analysis_arg, key_arg):
+            try:
+                debug = {}
+                # 1) Ask Gemini to synthesize Plotly code from its own analysis text
+                gen = az.generate_plotly_code(df_arg, analysis_arg.get("response", ""), extras={
+                    "parsed": analysis_arg.get("parsed_visualizations")
+                })
+                fig = None
+                if gen and gen.get("code"):
+                    debug["code"] = gen["code"]
+                    fig = vg.build_figure_from_code(gen["code"], df_arg)
+                # 2) Fallback to internal mapping if code failed
+                if fig is None:
+                    debug["fallback"] = "rule_based"
+                    fig = vg.generate_visualization(df_arg, prompt_arg, analysis_arg)
+                # 3) Final fallback: automatic visuals
+                if fig is None:
+                    debug["fallback"] = "auto_visualizations"
+                    auto = vg.generate_automatic_visualizations(df_arg)
+                    fig = auto[0] if auto else None
+                with ASYNC_VIZ_LOCK:
+                    ASYNC_VIZ_RESULTS[key_arg] = {"fig": fig, "error": None if fig is not None else "No figure produced", "debug": debug}
+            except Exception as e:
+                with ASYNC_VIZ_LOCK:
+                    ASYNC_VIZ_RESULTS[key_arg] = {"fig": None, "error": str(e)}
+            finally:
+                with ASYNC_VIZ_LOCK:
+                    if key_arg in ASYNC_VIZ_PENDING:
+                        ASYNC_VIZ_PENDING.remove(key_arg)
+        
+        t = threading.Thread(target=_worker, args=(viz_gen, analyzer, df_local, prompt_text, analysis_result, async_key), daemon=True)
+        t.start()
     
-    # Display chat history with elegant visualization styling
+    # Display chat history with elegant visualization styling (supports async results)
     for message in st.session_state.chat_history:
         with st.chat_message(message["role"]):
-            # Display the text content
             st.write(message["content"])
-            
-            # Display visualization if present with elegant styling
-            if "visualization" in message and message["visualization"] is not None:
-                st.markdown("""
-                <div class="enterprise-card" style="margin-top: 1rem;">
-                    <div class="card-header">
-                        <h4 class="card-title">📊 AI-Generated Visualization</h4>
-                        <div style="color: #64748B; font-size: 0.9rem;">Based on your query analysis</div>
+
+            # If a completed viz exists (synchronous or async)
+            viz = message.get("visualization")
+            async_key = message.get("async_key")
+            if viz is None and async_key:
+                # Check if async result arrived
+                with ASYNC_VIZ_LOCK:
+                    result = ASYNC_VIZ_RESULTS.get(async_key)
+                    pending = async_key in ASYNC_VIZ_PENDING
+                if result and result.get("fig") is not None:
+                    viz = result.get("fig")
+                elif pending:
+                    # Visible loading block with icon while async generation continues
+                    st.markdown("""
+                    <div class="enterprise-card" style="margin-top: 1rem; display:flex; align-items:center; gap:10px;">
+                        <div class="status-dot" style="width:12px;height:12px;border-radius:50%;background:#4F7CFF;animation:pulse 1s infinite;"></div>
+                        <div>Generating visualization… This may take a few seconds.</div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Apply enterprise styling to the chart
-                viz = message["visualization"]
-                viz.update_layout(
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    title_font=dict(size=16, color='#1E293B'),
-                    font=dict(color='#1E293B'),
-                    showlegend=True,
-                    margin=dict(l=10, r=10, t=40, b=10)
-                )
-                st.plotly_chart(viz, use_container_width=True, key=f"chart_history_{hash(str(message))}")
-                
-                # Add download option for the chart
-                try:
-                    img_data = pio.to_image(viz, format='png', width=1200, height=800)
-                    st.download_button(
-                        label="📥 Download Chart",
-                        data=img_data,
-                        file_name="ai_generated_chart.png",
-                        mime="image/png",
-                        help="Download this AI-generated visualization",
-                        key=f"download_{hash(str(message))}"
+                    """, unsafe_allow_html=True)
+                    # Throttle reruns to ~1/sec
+                    now = time.time()
+                    last = st.session_state.get("_auto_refresh_ts", 0)
+                    if now - last > 0.9:
+                        st.session_state._auto_refresh_ts = now
+                        _safe_rerun()
+                elif result and result.get("error"):
+                    st.error(f"Visualization generation error: {result.get('error')}")
+                    dbg = result.get("debug")
+                    if dbg and 'code' in dbg:
+                        with st.expander("Show generated code"):
+                            st.code(dbg['code'], language='python')
+
+            # Handle both single viz (old) and multiple vizs (new)
+            vizs = message.get("visualizations") or ([message.get("visualization")] if message.get("visualization") else [])
+            for idx, viz in enumerate(vizs):
+                if viz is not None:
+                    st.markdown("""
+                    <div class="enterprise-card" style="margin-top: 1.5rem;">
+                        <div class="card-header">
+                            <h4 class="card-title">📊 AI-Generated Visualization {}</h4>
+                            <div style="color: #64748B; font-size: 0.9rem;">Based on your query analysis</div>
+                        </div>
+                    </div>
+                    """.format(f"#{idx+1}" if len(vizs) > 1 else ""), unsafe_allow_html=True)
+                    
+                    viz.update_layout(
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        title_font=dict(size=16, color='#1E293B'),
+                        font=dict(color='#1E293B'),
+                        showlegend=True,
+                        margin=dict(l=10, r=10, t=40, b=10)
                     )
-                except:
-                    pass  # Skip download if there's an issue
+                    st.plotly_chart(viz, use_container_width=True, key=f"chart_history_{idx}_{hash(async_key or str(message))}")
+                    try:
+                        img_data = pio.to_image(viz, format='png', width=1200, height=800)
+                        st.download_button(
+                            label=f"📥 Download Chart {idx+1 if len(vizs) > 1 else ''}",
+                            data=img_data,
+                            file_name=f"ai_generated_chart_{idx+1}.png",
+                            mime="image/png",
+                            help="Download this AI-generated visualization",
+                            key=f"download_hist_{idx}_{hash(async_key or str(message))}"
+                        )
+                    except:
+                        pass
     
     # Chat input
     if prompt := st.chat_input("Ask me anything about your data..."):
@@ -674,75 +807,127 @@ def chat_interface():
                     # Get AI analysis
                     analysis_result = st.session_state.data_analyzer.analyze_query(df, prompt)
                     
-                    # Display response
+                    # Display response immediately
                     st.write(analysis_result["response"])
                     
-                    # Generate and display visualization if suggested
-                    viz = None
-                    # Always try to generate visualization for better user experience
-                    if analysis_result.get("needs_visualization") or any(word in prompt.lower() for word in ["show", "plot", "chart", "graph", "visualize", "display"]):
-                        with st.spinner("Creating visualization..."):
-                            try:
-                                viz = st.session_state.viz_generator.generate_visualization(
-                                    df, 
-                                    prompt, 
-                                    analysis_result
-                                )
-                                print(f"Debug - Generated viz: {viz is not None}")
-                            except Exception as e:
-                                print(f"Debug - Viz generation error: {e}")
-                                st.error(f"Visualization generation error: {e}")
-                            
-                            if viz is not None:
-                                # Display visualization elegantly
-                                st.markdown("""
-                                <div class="enterprise-card" style="margin-top: 1rem;">
-                                    <div class="card-header">
-                                        <h4 class="card-title">📊 AI-Generated Visualization</h4>
-                                        <div style="color: #64748B; font-size: 0.9rem;">Based on your query analysis</div>
-                                    </div>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                
-                                # Apply enterprise styling
-                                viz.update_layout(
-                                    plot_bgcolor='rgba(0,0,0,0)',
-                                    paper_bgcolor='rgba(0,0,0,0)',
-                                    title_font=dict(size=16, color='#1E293B'),
-                                    font=dict(color='#1E293B'),
-                                    showlegend=True,
-                                    margin=dict(l=10, r=10, t=40, b=10)
-                                )
-                                st.plotly_chart(viz, use_container_width=True, key=f"chart_current_{len(st.session_state.chat_history)}")
-                                
-                                # Add download option
-                                try:
-                                    img_data = pio.to_image(viz, format='png', width=1200, height=800)
-                                    st.download_button(
-                                        label="📥 Download Chart",
-                                        data=img_data,
-                                        file_name="ai_generated_chart.png",
-                                        mime="image/png",
-                                        help="Download this AI-generated visualization",
-                                        key=f"download_current_{len(st.session_state.chat_history)}"
-                                    )
-                                except:
-                                    pass
-                            else:
-                                # If no specific viz generated, try to create a simple automatic one
-                                st.info("💡 Let me generate an automatic visualization based on your data...")
-                                auto_vizs = st.session_state.viz_generator.generate_automatic_visualizations(df)
-                                if auto_vizs:
-                                    viz = auto_vizs[0]  # Use the first auto-generated visualization
-                                    st.plotly_chart(viz, use_container_width=True, key=f"chart_fallback_{len(st.session_state.chat_history)}")
+                    # Decide if we should generate visualization
+                    should_viz = analysis_result.get("needs_visualization") or any(word in prompt.lower() for word in ["show", "plot", "chart", "graph", "visualize", "display"]) 
                     
-                    # Add to chat history with or without visualization
-                    st.session_state.chat_history.append({
-                        "role": "assistant",
-                        "content": analysis_result["response"],
-                        "visualization": viz
-                    })
+                    print(f"[DEBUG] should_viz={should_viz}")
+                    
+                    if should_viz:
+                        # ALWAYS use synchronous path for reliability
+                        st.info("🎨 Generating visualizations...")
+                        figures = []
+                        errors = []
                         
+                        # Check how many visualizations were recommended
+                        num_recommendations = len(analysis_result.get("visualization_suggestions", []))
+                        print(f"[VIZ] Number of recommendations: {num_recommendations}")
+                        
+                        try:
+                            # Try 1: Generate Plotly code from AI's own text recommendations via Gemini
+                            print("[VIZ] Step 1: Sending AI recommendations to Gemini for Plotly code...")
+                            gen = st.session_state.data_analyzer.generate_plotly_code(
+                                df, 
+                                analysis_result.get("response", ""), 
+                                extras={"suggestions": analysis_result.get("visualization_suggestions")}
+                            )
+                            if gen and gen.get("code"):
+                                print("[VIZ] Gemini returned code, executing...")
+                                result = st.session_state.viz_generator.build_figure_from_code(gen["code"], df)
+                                if result:
+                                    # Handle both single figure and list of figures
+                                    if isinstance(result, list):
+                                        figures.extend(result)
+                                    else:
+                                        figures.append(result)
+                                    print(f"[VIZ] Gemini code SUCCESS ✓ (generated {len(figures)} chart(s))")
+                            else:
+                                print("[VIZ] Gemini did not return code")
+                        except Exception as e:
+                            errors.append(f"Gemini code: {e}")
+                            print(f"[VIZ ERROR] Gemini code failed: {e}")
+                        
+                        # Try 2: Rule-based viz as fallback
+                        if not figures:
+                            try:
+                                print("[VIZ] Step 2: Fallback to rule-based generator...")
+                                fig = st.session_state.viz_generator.generate_visualization(df, prompt, analysis_result)
+                                if fig:
+                                    figures.append(fig)
+                                    print("[VIZ] Rule-based SUCCESS")
+                            except Exception as e:
+                                errors.append(f"Rule-based: {e}")
+                                print(f"[VIZ ERROR] Rule-based failed: {e}")
+                        
+                        # Try 3: Auto-viz last resort
+                        if not figures:
+                            try:
+                                print("[VIZ] Step 3: Last resort - auto-viz...")
+                                autos = st.session_state.viz_generator.generate_automatic_visualizations(df)
+                                if autos:
+                                    # Take multiple auto-viz charts if available
+                                    figures.extend(autos[:num_recommendations] if num_recommendations > 0 else autos[:1])
+                                    print(f"[VIZ] Auto-viz SUCCESS (generated {len(figures)} chart(s))")
+                            except Exception as e:
+                                errors.append(f"Auto-viz: {e}")
+                                print(f"[VIZ ERROR] Auto-viz failed: {e}")
+                        
+                        # Report errors if all failed
+                        if not figures and errors:
+                            st.error("Visualization generation failed:")
+                            for err in errors:
+                                st.write(f"• {err}")
+                        
+                        # Render all charts with proper spacing
+                        for idx, fig in enumerate(figures):
+                            st.markdown("""
+                            <div class="enterprise-card" style="margin-top: 1.5rem;">
+                                <div class="card-header">
+                                    <h4 class="card-title">📊 AI-Generated Visualization {}</h4>
+                                    <div style="color: #64748B; font-size: 0.9rem;">Based on your query analysis</div>
+                                </div>
+                            </div>
+                            """.format(f"#{idx+1}" if len(figures) > 1 else ""), unsafe_allow_html=True)
+                            
+                            fig.update_layout(
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                title_font=dict(size=16, color='#1E293B'),
+                                font=dict(color='#1E293B'),
+                                showlegend=True,
+                                margin=dict(l=10, r=10, t=40, b=10)
+                            )
+                            st.plotly_chart(fig, use_container_width=True, key=f"viz_{idx}_{hash(prompt)}")
+                            
+                            try:
+                                img_data = pio.to_image(fig, format='png', width=1200, height=800)
+                                st.download_button(
+                                    label=f"📥 Download Chart {idx+1 if len(figures) > 1 else ''}",
+                                    data=img_data,
+                                    file_name=f"ai_generated_chart_{idx+1}.png",
+                                    mime="image/png",
+                                    help="Download this AI-generated visualization",
+                                    key=f"download_viz_{idx}_{hash(prompt)}"
+                                )
+                            except:
+                                pass
+                        
+                        # Append to chat history
+                        st.session_state.chat_history.append({
+                            "role": "assistant",
+                            "content": analysis_result["response"],
+                            "visualizations": figures  # Changed from singular to plural
+                        })
+                    else:
+                        # No viz requested; append text-only
+                        st.session_state.chat_history.append({
+                            "role": "assistant",
+                            "content": analysis_result["response"],
+                            "visualization": None
+                        })
+                
                 except Exception as e:
                     error_msg = f"I encountered an error while analyzing your data: {str(e)}"
                     st.error(error_msg)
