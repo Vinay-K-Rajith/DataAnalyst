@@ -1009,6 +1009,12 @@ Generate ONLY the build_figure function. No explanations, no markdown formatting
             else:
                 print(f"[GEMINI CODE PREVIEW]\n{code[:500]}...")
             
+            # Basic validation: ensure a build_figure function exists and code is plausible
+            invalid_markers = ["analysis error", "unable to generate", "finish_reason"]
+            lower_code = code.lower()
+            if 'def build_figure' not in code or any(m in lower_code for m in invalid_markers):
+                return {"error": "LLM did not return executable code"}
+            
             return {"code": code}
         except Exception as e:
             return {"error": str(e)}
